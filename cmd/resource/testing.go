@@ -2,7 +2,6 @@ package resource
 
 import (
 	"bytes"
-
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -25,10 +24,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
-	v1beta1 "k8s.io/api/extensions/v1beta1"
-	networkingv1beta1 "k8s.io/api/networking/v1beta1"
+	v1 "k8s.io/api/extensions/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/meta/testrestmapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -107,7 +106,7 @@ metadata:
  name: nginx-ss
 
 ---
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: test-ingress`
@@ -248,12 +247,12 @@ func testDynamicResources() []*restmapper.APIGroupResources {
 			Group: metav1.APIGroup{
 				Name: "extensions",
 				Versions: []metav1.GroupVersionForDiscovery{
-					{Version: "v1beta1"},
+					{Version: "v1"},
 				},
-				PreferredVersion: metav1.GroupVersionForDiscovery{Version: "v1beta1"},
+				PreferredVersion: metav1.GroupVersionForDiscovery{Version: "v1"},
 			},
 			VersionedResources: map[string][]metav1.APIResource{
-				"v1beta1": {
+				"v1": {
 					{Name: "deployments", Namespaced: true, Kind: "Deployment"},
 					{Name: "replicasets", Namespaced: true, Kind: "ReplicaSet"},
 				},
@@ -263,14 +262,14 @@ func testDynamicResources() []*restmapper.APIGroupResources {
 			Group: metav1.APIGroup{
 				Name: "apps",
 				Versions: []metav1.GroupVersionForDiscovery{
-					{Version: "v1beta1"},
+					{Version: "v1"},
 					{Version: "v1beta2"},
 					{Version: "v1"},
 				},
 				PreferredVersion: metav1.GroupVersionForDiscovery{Version: "v1"},
 			},
 			VersionedResources: map[string][]metav1.APIResource{
-				"v1beta1": {
+				"v1": {
 					{Name: "deployments", Namespaced: true, Kind: "Deployment"},
 					{Name: "replicasets", Namespaced: true, Kind: "ReplicaSet"},
 				},
@@ -289,13 +288,13 @@ func testDynamicResources() []*restmapper.APIGroupResources {
 			Group: metav1.APIGroup{
 				Name: "networking.k8s.io",
 				Versions: []metav1.GroupVersionForDiscovery{
-					{Version: "v1beta1"},
+					{Version: "v1"},
 					{Version: "v0"},
 				},
-				PreferredVersion: metav1.GroupVersionForDiscovery{Version: "v1beta1"},
+				PreferredVersion: metav1.GroupVersionForDiscovery{Version: "v1"},
 			},
 			VersionedResources: map[string][]metav1.APIResource{
-				"v1beta1": {
+				"v1": {
 					{Name: "ingress", Namespaced: true, Kind: "Ingress"},
 				},
 			},
@@ -304,13 +303,13 @@ func testDynamicResources() []*restmapper.APIGroupResources {
 			Group: metav1.APIGroup{
 				Name: "apiextensions.k8s.io",
 				Versions: []metav1.GroupVersionForDiscovery{
-					{Version: "v1beta1"},
+					{Version: "v1"},
 					{Version: "v1"},
 				},
 				PreferredVersion: metav1.GroupVersionForDiscovery{Version: "v1"},
 			},
 			VersionedResources: map[string][]metav1.APIResource{
-				"v1beta1": {
+				"v1": {
 					{Name: "customresourcedefinition", Namespaced: true, Kind: "CustomResourceDefinition"},
 				},
 				"v1": {
@@ -532,17 +531,17 @@ func ss(name string, namespace string, dtype appsv1.StatefulSetUpdateStrategyTyp
 	}
 }
 
-func ing(name string, namespace string, pending bool) *v1beta1.Ingress {
+func ing(name string, namespace string, pending bool) *v1.Ingress {
 	var ingress []v1.LoadBalancerIngress
 	if !pending {
 		ingress = []v1.LoadBalancerIngress{{Hostname: "ingress.test.com"}}
 	}
-	return &v1beta1.Ingress{
+	return &v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Status: v1beta1.IngressStatus{
+		Status: v1.IngressStatus{
 			LoadBalancer: v1.LoadBalancerStatus{
 				Ingress: ingress,
 			},
@@ -550,17 +549,17 @@ func ing(name string, namespace string, pending bool) *v1beta1.Ingress {
 	}
 }
 
-func ingN(name string, namespace string, pending bool) *networkingv1beta1.Ingress {
+func ingN(name string, namespace string, pending bool) *networkingv1.Ingress {
 	var ingress []v1.LoadBalancerIngress
 	if !pending {
 		ingress = []v1.LoadBalancerIngress{{Hostname: "ingressN.test.com"}}
 	}
-	return &networkingv1beta1.Ingress{
+	return &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Status: networkingv1beta1.IngressStatus{
+		Status: networkingv1.IngressStatus{
 			LoadBalancer: v1.LoadBalancerStatus{
 				Ingress: ingress,
 			},
@@ -626,36 +625,36 @@ func crd(name string, namespace string, namesAccepted bool, pending bool) *apiex
 	}
 }
 
-func crdBeta(name string, namespace string, namesAccepted bool, pending bool) *apiextv1beta1.CustomResourceDefinition {
-	s := apiextv1beta1.ConditionTrue
+func crdBeta(name string, namespace string, namesAccepted bool, pending bool) *apiextv1.CustomResourceDefinition {
+	s := apiextv1.ConditionTrue
 	if pending {
-		s = apiextv1beta1.ConditionFalse
+		s = apiextv1.ConditionFalse
 	}
-	c := []apiextv1beta1.CustomResourceDefinitionCondition{{
-		Type:   apiextv1beta1.Established,
+	c := []apiextv1.CustomResourceDefinitionCondition{{
+		Type:   apiextv1.Established,
 		Status: s,
 	},
 	}
 	switch {
 	case namesAccepted && !pending:
-		c = []apiextv1beta1.CustomResourceDefinitionCondition{{
-			Type:   apiextv1beta1.NamesAccepted,
-			Status: apiextv1beta1.ConditionFalse,
+		c = []apiextv1.CustomResourceDefinitionCondition{{
+			Type:   apiextv1.NamesAccepted,
+			Status: apiextv1.ConditionFalse,
 		},
 		}
 	case namesAccepted && pending:
-		c = []apiextv1beta1.CustomResourceDefinitionCondition{{
-			Type:   apiextv1beta1.NamesAccepted,
-			Status: apiextv1beta1.ConditionTrue,
+		c = []apiextv1.CustomResourceDefinitionCondition{{
+			Type:   apiextv1.NamesAccepted,
+			Status: apiextv1.ConditionTrue,
 		},
 		}
 	}
 
-	return &apiextv1beta1.CustomResourceDefinition{
+	return &apiextv1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Status: apiextv1beta1.CustomResourceDefinitionStatus{Conditions: c},
+		Status: apiextv1.CustomResourceDefinitionStatus{Conditions: c},
 	}
 }

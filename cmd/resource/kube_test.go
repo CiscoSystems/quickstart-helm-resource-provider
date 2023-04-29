@@ -1,17 +1,17 @@
 package resource
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
-	networkingv1beta1 "k8s.io/api/networking/v1beta1"
-	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/api/extensions/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
 // TestCreateKubeConfig to test createKubeConfig
@@ -179,8 +179,8 @@ func TestGetManifestDetails(t *testing.T) {
 func TestReady(t *testing.T) {
 	tests := map[string]struct {
 		assertion assert.BoolAssertionFunc
-		ing       *v1beta1.Ingress
-		ingN      *networkingv1beta1.Ingress
+		ing       *v1.Ingress
+		ingN      *networkingv1.Ingress
 		pvc       *corev1.PersistentVolumeClaim
 		dep       *appsv1.Deployment
 	}{
@@ -300,7 +300,7 @@ func TestCrdReady(t *testing.T) {
 func TestCrdBetaReady(t *testing.T) {
 	tests := map[string]struct {
 		assertion assert.BoolAssertionFunc
-		crd       *apiextv1beta1.CustomResourceDefinition
+		crd       *apiextv1.CustomResourceDefinition
 	}{
 		"Pending": {
 			assertion: assert.False,

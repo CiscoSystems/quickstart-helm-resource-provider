@@ -11,13 +11,13 @@ import (
 
 	"helm.sh/helm/v3/pkg/kube"
 	appsv1 "k8s.io/api/apps/v1"
-	appsv1beta1 "k8s.io/api/apps/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	appsv1beta2 "k8s.io/api/apps/v1beta2"
 	corev1 "k8s.io/api/core/v1"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
-	networkingv1beta1 "k8s.io/api/networking/v1beta1"
+	extensionsv1 "k8s.io/api/extensions/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -143,7 +143,7 @@ func (c *Clients) CheckPendingResources(r *ReleaseData) (bool, error) {
 			return true, fmt.Errorf("couldn't get the resources")
 		}
 		switch value := kube.AsVersioned(info).(type) {
-		case *appsv1.Deployment, *appsv1beta1.Deployment, *appsv1beta2.Deployment, *extensionsv1beta1.Deployment:
+		case *appsv1.Deployment, *appsv1.Deployment, *appsv1beta2.Deployment, *extensionsv1.Deployment:
 			currentDeployment, err := c.ClientSet.AppsV1().Deployments(info.Namespace).Get(context.Background(), info.Name, metav1.GetOptions{})
 			if err != nil {
 				errCount++
@@ -165,7 +165,7 @@ func (c *Clients) CheckPendingResources(r *ReleaseData) (bool, error) {
 			if !serviceReady(value) {
 				pArray = append(pArray, false)
 			}
-		case *extensionsv1beta1.DaemonSet, *appsv1.DaemonSet, *appsv1beta2.DaemonSet:
+		case *extensionsv1.DaemonSet, *appsv1.DaemonSet, *appsv1beta2.DaemonSet:
 			ds, err := c.ClientSet.AppsV1().DaemonSets(info.Namespace).Get(context.Background(), info.Name, metav1.GetOptions{})
 
 			if err != nil {
@@ -176,7 +176,7 @@ func (c *Clients) CheckPendingResources(r *ReleaseData) (bool, error) {
 			if !daemonSetReady(ds) {
 				pArray = append(pArray, false)
 			}
-		case *appsv1.StatefulSet, *appsv1beta1.StatefulSet, *appsv1beta2.StatefulSet:
+		case *appsv1.StatefulSet, *appsv1.StatefulSet, *appsv1beta2.StatefulSet:
 			sts, err := c.ClientSet.AppsV1().StatefulSets(info.Namespace).Get(context.Background(), info.Name, metav1.GetOptions{})
 			if err != nil {
 				log.Printf("Warning: Got error getting statefulset %s", err.Error())
@@ -186,19 +186,19 @@ func (c *Clients) CheckPendingResources(r *ReleaseData) (bool, error) {
 			if !statefulSetReady(sts) {
 				pArray = append(pArray, false)
 			}
-		case *extensionsv1beta1.Ingress:
+		case *extensionsv1.Ingress:
 			if !ingressReady(value) {
 				pArray = append(pArray, false)
 			}
-		case *networkingv1beta1.Ingress:
+		case *networkingv1.Ingress:
 			if !ingressNReady(value) {
 				pArray = append(pArray, false)
 			}
-		case *apiextv1beta1.CustomResourceDefinition:
+		case *apiextv1.CustomResourceDefinition:
 			if err := info.Get(); err != nil {
 				return false, err
 			}
-			crd := &apiextv1beta1.CustomResourceDefinition{}
+			crd := &apiextv1.CustomResourceDefinition{}
 			if err := scheme.Scheme.Convert(info.Object, crd, nil); err != nil {
 				log.Printf("Warning: Got error getting CRD %s", err.Error())
 				errCount++
@@ -316,7 +316,7 @@ func (c *Clients) getManifestDetails(r *ReleaseData) ([]*resource.Info, error) {
 	return infos, nil
 }
 
-func ingressReady(i *extensionsv1beta1.Ingress) bool {
+func ingressReady(i *extensionsv1.Ingress) bool {
 	if IsZero(i.Status.LoadBalancer) {
 		msg := fmt.Sprintf("Ingress does not have address: %s/%s", i.GetNamespace(), i.GetName())
 		log.Printf(msg)
@@ -327,7 +327,7 @@ func ingressReady(i *extensionsv1beta1.Ingress) bool {
 	return true
 }
 
-func ingressNReady(i *networkingv1beta1.Ingress) bool {
+func ingressNReady(i *networkingv1.Ingress) bool {
 	if IsZero(i.Status.LoadBalancer) {
 		msg := fmt.Sprintf("Ingress does not have address: %s/%s", i.GetNamespace(), i.GetName())
 		log.Printf(msg)
@@ -467,16 +467,16 @@ func statefulSetReady(sts *appsv1.StatefulSet) bool {
 	return true
 }
 
-func crdBetaReady(crd *apiextv1beta1.CustomResourceDefinition) bool {
+func crdBetaReady(crd *apiextv1.CustomResourceDefinition) bool {
 	for _, cond := range crd.Status.Conditions {
 		switch cond.Type {
-		case apiextv1beta1.Established:
-			if cond.Status == apiextv1beta1.ConditionTrue {
+		case apiextv1.Established:
+			if cond.Status == apiextv1.ConditionTrue {
 				popLastKnownError(crd.Name)
 				return true
 			}
-		case apiextv1beta1.NamesAccepted:
-			if cond.Status == apiextv1beta1.ConditionFalse {
+		case apiextv1.NamesAccepted:
+			if cond.Status == apiextv1.ConditionFalse {
 				// This indicates a naming conflict, but it's probably not the
 				// job of this function to fail because of that. Instead,
 				// we treat it as a success, since the process should be able to
