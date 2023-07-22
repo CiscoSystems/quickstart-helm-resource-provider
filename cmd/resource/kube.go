@@ -11,12 +11,9 @@ import (
 
 	"helm.sh/helm/v3/pkg/kube"
 	appsv1 "k8s.io/api/apps/v1"
-	appsv1 "k8s.io/api/apps/v1"
 	appsv1beta2 "k8s.io/api/apps/v1beta2"
 	corev1 "k8s.io/api/core/v1"
-	extensionsv1 "k8s.io/api/extensions/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -143,7 +140,7 @@ func (c *Clients) CheckPendingResources(r *ReleaseData) (bool, error) {
 			return true, fmt.Errorf("couldn't get the resources")
 		}
 		switch value := kube.AsVersioned(info).(type) {
-		case *appsv1.Deployment, *appsv1.Deployment, *appsv1beta2.Deployment, *extensionsv1.Deployment:
+		case *appsv1.Deployment,  *appsv1beta2.Deployment :
 			currentDeployment, err := c.ClientSet.AppsV1().Deployments(info.Namespace).Get(context.Background(), info.Name, metav1.GetOptions{})
 			if err != nil {
 				errCount++
@@ -165,7 +162,7 @@ func (c *Clients) CheckPendingResources(r *ReleaseData) (bool, error) {
 			if !serviceReady(value) {
 				pArray = append(pArray, false)
 			}
-		case *extensionsv1.DaemonSet, *appsv1.DaemonSet, *appsv1beta2.DaemonSet:
+		case  *appsv1.DaemonSet, *appsv1beta2.DaemonSet:
 			ds, err := c.ClientSet.AppsV1().DaemonSets(info.Namespace).Get(context.Background(), info.Name, metav1.GetOptions{})
 
 			if err != nil {
@@ -176,7 +173,7 @@ func (c *Clients) CheckPendingResources(r *ReleaseData) (bool, error) {
 			if !daemonSetReady(ds) {
 				pArray = append(pArray, false)
 			}
-		case *appsv1.StatefulSet, *appsv1.StatefulSet, *appsv1beta2.StatefulSet:
+		case  *appsv1.StatefulSet, *appsv1beta2.StatefulSet:
 			sts, err := c.ClientSet.AppsV1().StatefulSets(info.Namespace).Get(context.Background(), info.Name, metav1.GetOptions{})
 			if err != nil {
 				log.Printf("Warning: Got error getting statefulset %s", err.Error())
@@ -186,25 +183,8 @@ func (c *Clients) CheckPendingResources(r *ReleaseData) (bool, error) {
 			if !statefulSetReady(sts) {
 				pArray = append(pArray, false)
 			}
-		case *extensionsv1.Ingress:
-			if !ingressReady(value) {
-				pArray = append(pArray, false)
-			}
 		case *networkingv1.Ingress:
 			if !ingressNReady(value) {
-				pArray = append(pArray, false)
-			}
-		case *apiextv1.CustomResourceDefinition:
-			if err := info.Get(); err != nil {
-				return false, err
-			}
-			crd := &apiextv1.CustomResourceDefinition{}
-			if err := scheme.Scheme.Convert(info.Object, crd, nil); err != nil {
-				log.Printf("Warning: Got error getting CRD %s", err.Error())
-				errCount++
-				continue
-			}
-			if !crdBetaReady(crd) {
 				pArray = append(pArray, false)
 			}
 		case *apiextv1.CustomResourceDefinition:
@@ -316,16 +296,6 @@ func (c *Clients) getManifestDetails(r *ReleaseData) ([]*resource.Info, error) {
 	return infos, nil
 }
 
-func ingressReady(i *extensionsv1.Ingress) bool {
-	if IsZero(i.Status.LoadBalancer) {
-		msg := fmt.Sprintf("Ingress does not have address: %s/%s", i.GetNamespace(), i.GetName())
-		log.Printf(msg)
-		pushLastKnownError(msg)
-		return false
-	}
-	popLastKnownError(i.GetName())
-	return true
-}
 
 func ingressNReady(i *networkingv1.Ingress) bool {
 	if IsZero(i.Status.LoadBalancer) {

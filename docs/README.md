@@ -1,6 +1,6 @@
 # AWSQS::Kubernetes::Helm
 
-A resource provider for managing helm.
+A resource provider for managing helm. Version: 1.2.1
 
 ## Syntax
 
